@@ -309,15 +309,18 @@ export let MODEL_LIST: ModelInfo[] = [...staticModels];
 export async function getModelList(
   apiKeys: Record<string, string>,
   providerSettings?: Record<string, IProviderSetting>,
+  providerNames?: string[],
 ) {
+  // Chat requests only need a dynamic catalog for the provider chosen in the
+  // latest user message. Avoid waiting for unrelated remote catalogs (notably
+  // OpenRouter) before every Google/Groq/etc. response.
+  const dynamicProviders = PROVIDER_LIST.filter(
+    (p): p is ProviderInfo & { getDynamicModels: () => Promise<ModelInfo[]> } =>
+      !!p.getDynamicModels && (!providerNames || providerNames.includes(p.name)),
+  );
+
   MODEL_LIST = [
-    ...(
-      await Promise.all(
-        PROVIDER_LIST.filter(
-          (p): p is ProviderInfo & { getDynamicModels: () => Promise<ModelInfo[]> } => !!p.getDynamicModels,
-        ).map((p) => p.getDynamicModels(apiKeys, providerSettings?.[p.name])),
-      )
-    ).flat(),
+    ...(await Promise.all(dynamicProviders.map((p) => p.getDynamicModels(apiKeys, providerSettings?.[p.name])))).flat(),
     ...staticModels,
   ];
   return MODEL_LIST;
