@@ -1,6 +1,6 @@
 import type { ProviderInfo } from '~/types/model';
 import type { ModelInfo } from '~/utils/types';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 interface ModelSelectorProps {
   model?: string;
@@ -23,7 +23,10 @@ export const ModelSelector = ({
   // providerList is already filtered by useSettings to include enabled providers only.
   // Keep it as the single source of truth rather than polling cookies once per second.
   const enabledProviders = providerList;
-  const providerModels = modelList.filter((item) => item.provider === provider?.name && Boolean(item.name));
+  const providerModels = useMemo(
+    () => modelList.filter((item) => item.provider === provider?.name && Boolean(item.name)),
+    [modelList, provider?.name],
+  );
 
   useEffect(() => {
     if (enabledProviders.length === 0) {
