@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "deploy": "npm run build && wrangler pages deploy",
-    "build": "remix vite:build",
+    "build": "pnpm run verify && remix vite:build",
     "dev": "remix vite:dev",
     "test": "vitest --run",
     "test:watch": "vitest",
@@ -23,7 +23,8 @@
     "typecheck": "tsc",
     "typegen": "wrangler types",
     "preview": "pnpm run build && pnpm run start",
-    "prepare": "husky"
+    "prepare": "husky",
+    "verify": "pnpm run typecheck && pnpm run test"
   },
   "engines": {
     "node": "22.x"
