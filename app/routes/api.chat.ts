@@ -20,9 +20,13 @@ function parseCookies(cookieHeader: string) {
 
     if (name && rest) {
       // Decode the name and value, and join value parts in case it contains '='
-      const decodedName = decodeURIComponent(name.trim());
-      const decodedValue = decodeURIComponent(rest.join('=').trim());
-      cookies[decodedName] = decodedValue;
+      try {
+        const decodedName = decodeURIComponent(name.trim());
+        const decodedValue = decodeURIComponent(rest.join('=').trim());
+        cookies[decodedName] = decodedValue;
+      } catch {
+        // Ignore malformed cookie encoding instead of failing every chat request.
+      }
     }
   });
 
@@ -47,13 +51,33 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    * merge a newly saved key may not reach the model request until a reload.
    */
   const cookies = parseCookies(cookieHeader || '');
-  const cookieApiKeys = JSON.parse(cookies.apiKeys || '{}');
+  const parseCookieJson = (value: string | undefined): unknown => {
+    if (!value) {
+      return undefined;
+    }
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return undefined;
+    }
+  };
+
+  const parsedCookieApiKeys = parseCookieJson(cookies.apiKeys);
+  const cookieApiKeys =
+    parsedCookieApiKeys && typeof parsedCookieApiKeys === 'object' && !Array.isArray(parsedCookieApiKeys)
+      ? (parsedCookieApiKeys as Record<string, string>)
+      : {};
   const bodyApiKeys =
     requestBody.apiKeys && typeof requestBody.apiKeys === 'object' && !Array.isArray(requestBody.apiKeys)
       ? requestBody.apiKeys
       : {};
   const apiKeys = { ...cookieApiKeys, ...bodyApiKeys };
-  const providerSettings: Record<string, IProviderSetting> = JSON.parse(cookies.providers || '{}');
+  const parsedProviderSettings = parseCookieJson(cookies.providers);
+  const providerSettings: Record<string, IProviderSetting> =
+    parsedProviderSettings && typeof parsedProviderSettings === 'object' && !Array.isArray(parsedProviderSettings)
+      ? (parsedProviderSettings as Record<string, IProviderSetting>)
+      : {};
 
   const stream = new SwitchableStream();
 
