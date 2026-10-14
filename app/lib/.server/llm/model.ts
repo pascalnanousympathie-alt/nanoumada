@@ -141,7 +141,7 @@ export function getModel(
    */
 
   const apiKey = getAPIKey(env, provider, apiKeys); // Then assign
-  const baseURL = providerSettings?.[provider].baseUrl || getBaseURL(env, provider);
+  const baseURL = providerSettings?.[provider]?.baseUrl || getBaseURL(env, provider);
 
   switch (provider) {
     case 'Anthropic':
