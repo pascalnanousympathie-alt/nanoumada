@@ -288,8 +288,22 @@ export const ChatImpl = memo(
     useEffect(() => {
       const storedApiKeys = Cookies.get('apiKeys');
 
-      if (storedApiKeys) {
-        setApiKeys(JSON.parse(storedApiKeys));
+      if (!storedApiKeys) {
+        return;
+      }
+
+      try {
+        const parsedApiKeys = JSON.parse(storedApiKeys);
+
+        if (parsedApiKeys && typeof parsedApiKeys === 'object' && !Array.isArray(parsedApiKeys)) {
+          setApiKeys(parsedApiKeys);
+          return;
+        }
+
+        Cookies.remove('apiKeys');
+      } catch (error) {
+        logger.warn('Ignoring invalid saved API-key settings.');
+        Cookies.remove('apiKeys');
       }
     }, []);
 
