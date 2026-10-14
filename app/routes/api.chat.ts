@@ -104,10 +104,26 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       );
     }
 
+    const missingKeyMatch = providerError.match(/API key is missing for ([^.]+)/i);
+
+    if (missingKeyMatch) {
+      throw new Response(
+        `Nanoumada did not receive an API key for ${missingKeyMatch[1]}. Save the key in the chat API Key control and retry.`,
+        { status: 401, statusText: 'API key not received' },
+      );
+    }
+
+    if (/API key not valid|invalid API key|API_KEY_INVALID|key is not valid/i.test(providerError)) {
+      throw new Response(
+        'The AI provider rejected the API key. Nanoumada reached the provider, but the key was not accepted. Check that the key is active and Gemini API access is enabled for its Google project.',
+        { status: 401, statusText: 'Provider rejected API key' },
+      );
+    }
+
     if (error.message?.includes('API key')) {
-      throw new Response('Invalid or missing API key', {
+      throw new Response('The AI provider could not use this API key. Check the key and provider settings.', {
         status: 401,
-        statusText: 'Unauthorized',
+        statusText: 'API key error',
       });
     }
 
