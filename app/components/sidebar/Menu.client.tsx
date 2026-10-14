@@ -87,6 +87,17 @@ export const Menu = () => {
     }
   }, [open]);
 
+  // The sidebar was originally opened only by hovering the far-left edge.
+  // Touch devices do not reliably emit mousemove, so expose an explicit header action too.
+  useEffect(() => {
+    const openMenu = () => setOpen(true);
+    window.addEventListener('nanoumada:open-menu', openMenu);
+
+    return () => {
+      window.removeEventListener('nanoumada:open-menu', openMenu);
+    };
+  }, []);
+
   useEffect(() => {
     const enterThreshold = 40;
     const exitThreshold = 40;
@@ -126,7 +137,18 @@ export const Menu = () => {
       variants={menuVariants}
       className="flex selection-accent flex-col side-menu fixed top-0 w-[350px] h-full bg-bolt-elements-background-depth-2 border-r rounded-r-3xl border-bolt-elements-borderColor z-sidebar shadow-xl shadow-bolt-elements-sidebar-dropdownShadow text-sm"
     >
-      <div className="flex items-center h-[var(--header-height)]">{/* Placeholder */}</div>
+      <div className="flex items-center justify-between h-[var(--header-height)] px-4">
+        <span className="font-semibold text-bolt-elements-textPrimary">Nanoumada</span>
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          title="Close menu"
+          className="flex items-center justify-center rounded-md p-1.5 text-bolt-elements-textSecondary hover:bg-bolt-elements-item-backgroundActive focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
+          onClick={() => setOpen(false)}
+        >
+          <span className="i-ph:x text-lg" aria-hidden="true" />
+        </button>
+      </div>
       <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
         <div className="p-4 select-none">
           <a

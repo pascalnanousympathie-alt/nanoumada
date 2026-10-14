@@ -15,8 +15,16 @@ export function Header() {
         'border-bolt-elements-borderColor': chat.started,
       })}
     >
-      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary cursor-pointer">
-        <div className="i-ph:sidebar-simple-duotone text-xl" />
+      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary">
+        <button
+          type="button"
+          aria-label="Open navigation menu"
+          title="Menu"
+          className="flex items-center justify-center rounded-md p-1.5 hover:bg-bolt-elements-item-backgroundActive focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
+          onClick={() => window.dispatchEvent(new Event('nanoumada:open-menu'))}
+        >
+          <span className="i-ph:sidebar-simple-duotone text-xl" aria-hidden="true" />
+        </button>
         <a href="/" aria-label="Nanoumada home" className="text-2xl font-semibold text-accent flex items-center gap-2">
           <img src="/nanoumada-mark.svg" alt="" aria-hidden="true" className="w-7 h-7" />
           <span className="text-xl md:text-2xl font-semibold tracking-tight text-bolt-elements-textPrimary">
