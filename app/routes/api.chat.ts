@@ -30,20 +30,30 @@ function parseCookies(cookieHeader: string) {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages } = await request.json<{
+  const requestBody = await request.json<{
     messages: Messages;
-    model: string;
+    model?: string;
+    apiKeys?: Record<string, string>;
   }>();
+  const { messages } = requestBody;
 
   const runtimeEnv = ((context as any)?.cloudflare?.env ?? process.env) as Env;
 
   const cookieHeader = request.headers.get('Cookie');
 
-  // Parse the cookie's value (returns an object or null if no cookie exists)
-  const apiKeys = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');
-  const providerSettings: Record<string, IProviderSetting> = JSON.parse(
-    parseCookies(cookieHeader || '').providers || '{}',
-  );
+  /*
+   * Use current UI state first, with cookies as a fallback for older clients.
+   * The API-key UI and Chat client maintain separate React state; without this
+   * merge a newly saved key may not reach the model request until a reload.
+   */
+  const cookies = parseCookies(cookieHeader || '');
+  const cookieApiKeys = JSON.parse(cookies.apiKeys || '{}');
+  const bodyApiKeys =
+    requestBody.apiKeys && typeof requestBody.apiKeys === 'object' && !Array.isArray(requestBody.apiKeys)
+      ? requestBody.apiKeys
+      : {};
+  const apiKeys = { ...cookieApiKeys, ...bodyApiKeys };
+  const providerSettings: Record<string, IProviderSetting> = JSON.parse(cookies.providers || '{}');
 
   const stream = new SwitchableStream();
 

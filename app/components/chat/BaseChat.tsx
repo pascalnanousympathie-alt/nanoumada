@@ -45,6 +45,7 @@ interface BaseChatProps {
   setModel?: (model: string) => void;
   provider?: ProviderInfo;
   setProvider?: (provider: ProviderInfo) => void;
+  onApiKeysChange?: (apiKeys: Record<string, string>) => void;
   providerList?: ProviderInfo[];
   handleStop?: () => void;
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
@@ -71,6 +72,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setModel,
       provider,
       setProvider,
+      onApiKeysChange,
       providerList,
       input = '',
       enhancingPrompt,
@@ -396,6 +398,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         setApiKey={(key) => {
                           const newApiKeys = { ...apiKeys, [provider.name]: key };
                           setApiKeys(newApiKeys);
+                          onApiKeysChange?.(newApiKeys);
                           Cookies.set('apiKeys', JSON.stringify(newApiKeys));
 
                           let savedProviderSettings: Record<string, IProviderSetting> | undefined;

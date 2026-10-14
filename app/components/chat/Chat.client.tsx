@@ -318,6 +318,7 @@ export const ChatImpl = memo(
         setModel={handleModelChange}
         provider={provider}
         setProvider={handleProviderChange}
+        onApiKeysChange={setApiKeys}
         providerList={activeProviders}
         messageRef={messageRef}
         scrollRef={scrollRef}
