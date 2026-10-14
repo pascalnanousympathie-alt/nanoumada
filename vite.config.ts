@@ -21,18 +21,20 @@ export default defineConfig((config) => {
     },
     resolve: {
       alias:
-        platform === 'android'
-          ? config.command === 'serve' && config.mode !== 'test'
-            ? [
-                {
-                  find: /^react-dom\/server$/,
-                  replacement: fileURLToPath(new URL('./app/react-dom-server.android.ts', import.meta.url)),
-                },
-              ]
-            : config.command === 'build'
-              ? [{ find: /^react-dom\/server$/, replacement: 'react-dom/server.browser' }]
-              : []
-          : [],
+        nodeEnv.VERCEL === '1'
+          ? [{ find: /^react-dom\/server$/, replacement: 'react-dom/server.browser' }]
+          : platform === 'android'
+            ? config.command === 'serve' && config.mode !== 'test'
+              ? [
+                  {
+                    find: /^react-dom\/server$/,
+                    replacement: fileURLToPath(new URL('./app/react-dom-server.android.ts', import.meta.url)),
+                  },
+                ]
+              : config.command === 'build'
+                ? [{ find: /^react-dom\/server$/, replacement: 'react-dom/server.browser' }]
+                : []
+            : [],
     },
     plugins: [
       nodePolyfills({
