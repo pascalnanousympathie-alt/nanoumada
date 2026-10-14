@@ -103,7 +103,10 @@ export default async function handleRequest(
     },
   });
 
-  if (isbot(request.headers.get('user-agent') || '')) {
+  // Avoid React 18 Web Stream abort/close races on Vercel. The outer Vercel
+  // response owns cancellation, so finish the inner SSR render before sending
+  // any bytes; other runtimes can keep streaming for normal browser requests.
+  if (isVercelRuntime || isbot(request.headers.get('user-agent') || '')) {
     await readable.allReady;
   }
 
