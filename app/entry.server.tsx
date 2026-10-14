@@ -22,7 +22,11 @@ export default async function handleRequest(
   // renderer during response cancellation (ERR_INVALID_STATE: Controller is already
   // closed). Produce a complete document on Vercel to avoid that close race.
   // Keep streaming SSR on Cloudflare and local runtimes.
-  if (isVercelRuntime) {
+  const requestHost = (request.headers.get('host') || '').split(':')[0].toLowerCase();
+  const isVercelRequest =
+    isVercelRuntime || request.headers.has('x-vercel-id') || requestHost.endsWith('.vercel.app');
+
+  if (isVercelRequest) {
     const head = renderHeadToString({ request, remixContext, Head });
     const appMarkup = renderToString(<RemixServer context={remixContext} url={request.url} />);
 
