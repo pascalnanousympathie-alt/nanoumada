@@ -95,13 +95,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   } catch (error: any) {
     const providerError = String(error?.message ?? error ?? '');
     const safeProviderError = providerError
-      .replace(/([?&](?:key|api[_-]?key|access_token|token)=)[^&\\s]+/gi, '$1[REDACTED]')
-      .replace(/\\bAIza[0-9A-Za-z_-]{20,}\\b/g, '[REDACTED_API_KEY]')
+      .replace(/([?&](?:key|api[_-]?key|access_token|token)=)[^&\s]+/gi, '$1[REDACTED]')
+      .replace(/\bAIza[0-9A-Za-z_-]{20,}\b/g, '[REDACTED_API_KEY]')
       .replace(
-        /\\b(?:sk-[A-Za-z0-9_-]{16,}|sk_[A-Za-z0-9_-]{16,}|gsk_[A-Za-z0-9_-]{16,}|hf_[A-Za-z0-9_-]{16,}|xai-[A-Za-z0-9_-]{16,}|or-v1-[A-Za-z0-9_-]{16,})\\b/g,
+        /\b(?:sk-[A-Za-z0-9_-]{16,}|sk_[A-Za-z0-9_-]{16,}|gsk_[A-Za-z0-9_-]{16,}|hf_[A-Za-z0-9_-]{16,}|xai-[A-Za-z0-9_-]{16,}|or-v1-[A-Za-z0-9_-]{16,})\b/g,
         '[REDACTED_API_KEY]',
       )
-      .replace(/\\bBearer\\s+\\S+/gi, 'Bearer [REDACTED]');
+      .replace(/\bBearer\s+\S+/gi, 'Bearer [REDACTED]');
     console.error('Chat provider request failed:', safeProviderError.slice(0, 800));
 
     if (/\b429\b|rate.?limit|quota|resource_exhausted|too many requests/i.test(providerError)) {
