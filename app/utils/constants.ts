@@ -388,6 +388,21 @@ async function getOllamaModels(apiKeys?: Record<string, string>, settings?: IPro
 
   try {
     const baseUrl = getOllamaBaseUrl(settings);
+
+    // A server-side request to localhost targets the deployment container,
+    // not the user's device. Avoid one guaranteed failure on every SSR request.
+    if (typeof window === 'undefined') {
+      try {
+        const hostname = new URL(baseUrl).hostname.toLowerCase();
+
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') {
+          return [];
+        }
+      } catch {
+        // Let fetch below handle an invalid URL and keep the existing fallback.
+      }
+    }
+
     const response = await fetch(`${baseUrl}/api/tags`);
     const data = (await response.json()) as OllamaApiResponse;
 
