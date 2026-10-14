@@ -7,7 +7,7 @@ import React, { type RefCallback, useEffect, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { IconButton } from '~/components/ui/IconButton';
-import { Workbench } from '~/components/workbench/Workbench.client';
+
 import { classNames } from '~/utils/classNames';
 import { MODEL_LIST, PROVIDER_LIST, initializeModelList } from '~/utils/constants';
 import { Messages } from './Messages.client';
@@ -26,6 +26,10 @@ import FilePreview from './FilePreview';
 import { ModelSelector } from '~/components/chat/ModelSelector';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
 import type { IProviderSetting, ProviderInfo } from '~/types/model';
+
+const Workbench = React.lazy(() =>
+  import('~/components/workbench/Workbench.client').then(({ Workbench }) => ({ default: Workbench })),
+);
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -601,7 +605,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 handleSendMessage?.(event, messageInput);
               })}
           </div>
-          <ClientOnly>{() => <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />}</ClientOnly>
+          <ClientOnly>
+            {() =>
+              chatStarted ? (
+                <React.Suspense fallback={null}>
+                  <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />
+                </React.Suspense>
+              ) : null
+            }
+          </ClientOnly>
         </div>
       </div>
     );
