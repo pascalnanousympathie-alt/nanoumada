@@ -1,7 +1,7 @@
 import type { AppLoadContext, EntryContext } from '@remix-run/cloudflare';
 import { RemixServer } from '@remix-run/react';
 import { isbot } from 'isbot';
-import { renderToReadableStream } from 'react-dom/server';
+import { renderToReadableStream, renderToString } from 'react-dom/server';
 import { renderHeadToString } from 'remix-island';
 import { Head } from './root';
 import { themeStore } from '~/lib/stores/theme';
@@ -17,6 +17,24 @@ export default async function handleRequest(
   _loadContext: AppLoadContext,
 ) {
   await initializeModelList();
+
+  // Vercel's Node runtime has repeatedly aborted React 18's browser Web Stream
+  // renderer during response cancellation (ERR_INVALID_STATE: Controller is already
+  // closed). Produce a complete document on Vercel to avoid that close race.
+  // Keep streaming SSR on Cloudflare and local runtimes.
+  if (isVercelRuntime) {
+    const head = renderHeadToString({ request, remixContext, Head });
+    const appMarkup = renderToString(<RemixServer context={remixContext} url={request.url} />);
+
+    responseHeaders.set('Content-Type', 'text/html; charset=utf-8');
+    responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
+    responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+
+    return new Response(
+      `<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><div id="root" class="w-full h-full">${appMarkup}</div></body></html>`,
+      { headers: responseHeaders, status: responseStatusCode },
+    );
+  }
 
   const readable = await renderToReadableStream(<RemixServer context={remixContext} url={request.url} />, {
     // Vercel owns the outer response cancellation lifecycle. Passing its disconnect signal
