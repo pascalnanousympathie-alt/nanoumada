@@ -84,7 +84,9 @@ export async function streamText(props: {
     );
   }
 
-  const MODEL_LIST = await getModelList(apiKeys || {}, providerSettings);
+  // Load only the selected provider's dynamic catalog. Other providers' catalogs
+  // are unrelated to this completion and can add network latency or fail.
+  const MODEL_LIST = await getModelList(apiKeys || {}, providerSettings, [requestedProvider]);
   const processedMessages = messages.map((message) => {
     if (message.role === 'user') {
       const { model, provider, content } = extractPropertiesFromMessage(message);
