@@ -67,6 +67,14 @@ function getInitialProvider(): ProviderInfo {
     return googleProvider;
   }
 
+  // Preserve a previously configured provider even if its selection cookie was
+  // lost or stale. This prevents falling back to an unconfigured default key.
+  const providerWithSavedKey = PROVIDER_LIST.find((p) => Boolean(savedKeys[p.name]));
+
+  if (providerWithSavedKey) {
+    return providerWithSavedKey;
+  }
+
   return DEFAULT_PROVIDER;
 }
 
@@ -360,15 +368,15 @@ export const ChatImpl = memo(
       }
     }, []);
 
-    const handleModelChange = (newModel: string) => {
+    const handleModelChange = useCallback((newModel: string) => {
       setModel(newModel);
       Cookies.set('selectedModel', newModel, { expires: 30 });
-    };
+    }, []);
 
-    const handleProviderChange = (newProvider: ProviderInfo) => {
+    const handleProviderChange = useCallback((newProvider: ProviderInfo) => {
       setProvider(newProvider);
       Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
-    };
+    }, []);
 
     return (
       <BaseChat
