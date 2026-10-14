@@ -161,13 +161,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         const result = await streamText({ messages, env: runtimeEnv, options, apiKeys, providerSettings });
 
-        return stream.switchSource(result.toDataStream({ getErrorMessage }));
+        return stream.switchSource(result.toDataStream({ getErrorMessage: getStreamErrorMessage }));
       },
     };
 
     const result = await streamText({ messages, env: runtimeEnv, options, apiKeys, providerSettings });
 
-    stream.switchSource(result.toDataStream({ getErrorMessage }));
+    stream.switchSource(result.toDataStream({ getErrorMessage: getStreamErrorMessage }));
 
     return new Response(stream.readable, {
       status: 200,
