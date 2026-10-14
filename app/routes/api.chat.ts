@@ -30,6 +30,36 @@ function sanitizeProviderError(error: unknown, secrets: string[] = []) {
     .slice(0, 800);
 }
 
+function getProviderErrorDetails(error: unknown, secrets: string[] = [], depth = 0): string {
+  const value = error && typeof error === 'object' ? (error as Record<string, unknown>) : {};
+  const details: Record<string, unknown> = {
+    name: typeof value.name === 'string' ? value.name : undefined,
+    message: sanitizeProviderError(error, secrets),
+    code: typeof value.code === 'string' ? value.code : undefined,
+    statusCode: typeof value.statusCode === 'number' ? value.statusCode : undefined,
+    isRetryable: typeof value.isRetryable === 'boolean' ? value.isRetryable : undefined,
+  };
+
+  if (typeof value.url === 'string') {
+    try {
+      const url = new URL(value.url);
+      details.url = url.origin + url.pathname;
+    } catch {
+      details.url = '[unparseable URL]';
+    }
+  }
+
+  if (typeof value.responseBody === 'string') {
+    details.responseBody = sanitizeProviderError(value.responseBody, secrets).slice(0, 500);
+  }
+
+  if (depth < 2 && value.cause !== undefined && value.cause !== error) {
+    details.cause = getProviderErrorDetails(value.cause, secrets, depth + 1);
+  }
+
+  return JSON.stringify(details);
+}
+
 function parseCookies(cookieHeader: string) {
   const cookies: any = {};
 
@@ -108,7 +138,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       // Generation errors often arrive after HTTP 200 when the model stream starts.
       // Log them here as well as in the setup catch so production has the real cause.
       onError: ({ error }: { error: unknown }) => {
-        console.error('Chat provider stream failed:', sanitizeProviderError(error, Object.values(apiKeys)));
+        console.error('Chat provider stream details:', getProviderErrorDetails(error, Object.values(apiKeys)));
       },
       onFinish: async ({ text: content, finishReason }) => {
         if (finishReason !== 'length') {
@@ -146,6 +176,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const providerError = error instanceof Error ? error.message : String(error ?? '');
     const safeProviderError = sanitizeProviderError(error, Object.values(apiKeys));
     console.error('Chat provider request failed:', safeProviderError);
+    console.error('Chat provider error details:', getProviderErrorDetails(error, Object.values(apiKeys)));
 
     if (/\b429\b|rate.?limit|quota|resource_exhausted|too many requests/i.test(providerError)) {
       throw new Response(
