@@ -35,6 +35,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     model: string;
   }>();
 
+  const runtimeEnv = ((context as any)?.cloudflare?.env ?? process.env) as Env;
+
   const cookieHeader = request.headers.get('Cookie');
 
   // Parse the cookie's value (returns an object or null if no cookie exists)
@@ -64,13 +66,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         messages.push({ role: 'assistant', content });
         messages.push({ role: 'user', content: CONTINUE_PROMPT });
 
-        const result = await streamText({ messages, env: context.cloudflare.env, options, apiKeys, providerSettings });
+        const result = await streamText({ messages, env: runtimeEnv, options, apiKeys, providerSettings });
 
         return stream.switchSource(result.toAIStream());
       },
     };
 
-    const result = await streamText({ messages, env: context.cloudflare.env, options, apiKeys, providerSettings });
+    const result = await streamText({ messages, env: runtimeEnv, options, apiKeys, providerSettings });
 
     stream.switchSource(result.toAIStream());
 

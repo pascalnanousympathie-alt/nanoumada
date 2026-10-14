@@ -41,6 +41,8 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
 
   const { name: providerName } = provider;
 
+  const runtimeEnv = ((context as any)?.cloudflare?.env ?? process.env) as Env;
+
   // validate 'model' and 'provider' fields
   if (!model || typeof model !== 'string') {
     throw new Response('Invalid or missing model', {
@@ -101,7 +103,7 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
         `,
         },
       ],
-      env: context.cloudflare.env,
+      env: runtimeEnv,
       apiKeys,
       providerSettings,
     });
