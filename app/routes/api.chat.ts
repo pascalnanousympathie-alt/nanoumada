@@ -132,14 +132,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   const stream = new SwitchableStream();
 
+  // ai@3.4.33 does not support streamText({ onError }). Its compatible
+  // error hook is toDataStream({ getErrorMessage }), which handles streamed
+  // provider errors after the HTTP response has already started.
+  const getStreamErrorMessage = (error: unknown) => {
+    console.error('Chat provider stream details:', getProviderErrorDetails(error, Object.values(apiKeys)));
+    return 'The AI provider failed while streaming. Check the provider settings or choose another provider.';
+  };
+
   try {
     const options: StreamingOptions = {
       toolChoice: 'none',
-      // Generation errors often arrive after HTTP 200 when the model stream starts.
-      // Log them here as well as in the setup catch so production has the real cause.
-      onError: ({ error }: { error: unknown }) => {
-        console.error('Chat provider stream details:', getProviderErrorDetails(error, Object.values(apiKeys)));
-      },
       onFinish: async ({ text: content, finishReason }) => {
         if (finishReason !== 'length') {
           return stream.close();
@@ -158,13 +161,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         const result = await streamText({ messages, env: runtimeEnv, options, apiKeys, providerSettings });
 
-        return stream.switchSource(result.toAIStream());
+        return stream.switchSource(result.toDataStream({ getErrorMessage: getStreamErrorMessage }));
       },
     };
 
     const result = await streamText({ messages, env: runtimeEnv, options, apiKeys, providerSettings });
 
-    stream.switchSource(result.toAIStream());
+    stream.switchSource(result.toDataStream({ getErrorMessage: getStreamErrorMessage }));
 
     return new Response(stream.readable, {
       status: 200,

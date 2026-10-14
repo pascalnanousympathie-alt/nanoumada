@@ -1,7 +1,6 @@
 import type { ProviderInfo } from '~/types/model';
 import type { ModelInfo } from '~/utils/types';
-import { useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
+import { useEffect, useMemo } from 'react';
 
 interface ModelSelectorProps {
   model?: string;
@@ -21,61 +20,40 @@ export const ModelSelector = ({
   modelList,
   providerList,
 }: ModelSelectorProps) => {
-  // Load enabled providers from cookies
-  const [enabledProviders, setEnabledProviders] = useState(() => {
-    const savedProviders = Cookies.get('providers');
+  // providerList is already filtered by useSettings to include enabled providers only.
+  // Keep it as the single source of truth rather than polling cookies once per second.
+  const enabledProviders = providerList;
+  const providerModels = useMemo(
+    () => modelList.filter((item) => item.provider === provider?.name && Boolean(item.name)),
+    [modelList, provider?.name],
+  );
 
-    if (savedProviders) {
-      try {
-        const parsedProviders = JSON.parse(savedProviders);
-        return providerList.filter((p) => parsedProviders[p.name]);
-      } catch (error) {
-        console.error('Failed to parse providers from cookies:', error);
-        return providerList;
-      }
+  useEffect(() => {
+    if (enabledProviders.length === 0) {
+      return;
     }
 
-    return providerList;
-  });
+    const selectedProvider = enabledProviders.find((item) => item.name === provider?.name);
 
-  // Update enabled providers when cookies change
-  useEffect(() => {
-    // Function to update providers from cookies
-    const updateProvidersFromCookies = () => {
-      const savedProviders = Cookies.get('providers');
+    if (!selectedProvider) {
+      const fallbackProvider = enabledProviders[0];
+      setProvider?.(fallbackProvider);
 
-      if (savedProviders) {
-        try {
-          const parsedProviders = JSON.parse(savedProviders);
-          const newEnabledProviders = providerList.filter((p) => parsedProviders[p.name]);
-          setEnabledProviders(newEnabledProviders);
+      const fallbackModel = modelList.find((item) => item.provider === fallbackProvider.name && item.name);
 
-          // If current provider is disabled, switch to first enabled provider
-          if (provider && !parsedProviders[provider.name] && newEnabledProviders.length > 0) {
-            const firstEnabledProvider = newEnabledProviders[0];
-            setProvider?.(firstEnabledProvider);
-
-            // Also update the model to the first available one for the new provider
-            const firstModel = modelList.find((m) => m.provider === firstEnabledProvider.name);
-
-            if (firstModel) {
-              setModel?.(firstModel.name);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to parse providers from cookies:', error);
-        }
+      if (fallbackModel && fallbackModel.name !== model) {
+        setModel?.(fallbackModel.name);
       }
-    };
 
-    // Initial update
-    updateProvidersFromCookies();
+      return;
+    }
 
-    // Set up an interval to check for cookie changes
-    const interval = setInterval(updateProvidersFromCookies, 1000);
-
-    return () => clearInterval(interval);
-  }, [providerList, provider, setProvider, modelList, setModel]);
+    // Avoid carrying a model from the previous provider after settings or a
+    // dynamic provider catalogue changes.
+    if (providerModels.length > 0 && !providerModels.some((item) => item.name === model)) {
+      setModel?.(providerModels[0].name);
+    }
+  }, [enabledProviders, modelList, model, provider?.name, providerModels, setModel, setProvider]);
 
   if (enabledProviders.length === 0) {
     return (
@@ -89,43 +67,46 @@ export const ModelSelector = ({
   }
 
   return (
-    <div className="mb-2 flex gap-2 flex-col sm:flex-row">
+    <div className="mb-2 flex flex-col gap-2 sm:flex-row">
       <select
-        value={provider?.name ?? ''}
-        onChange={(e) => {
-          const newProvider = enabledProviders.find((p: ProviderInfo) => p.name === e.target.value);
+        aria-label="AI provider"
+        value={enabledProviders.some((item) => item.name === provider?.name) ? provider?.name : enabledProviders[0].name}
+        onChange={(event) => {
+          const nextProvider = enabledProviders.find((item) => item.name === event.target.value);
 
-          if (newProvider && setProvider) {
-            setProvider(newProvider);
+          if (!nextProvider) {
+            return;
           }
 
-          const firstModel = [...modelList].find((m) => m.provider === e.target.value);
+          setProvider?.(nextProvider);
 
-          if (firstModel && setModel) {
-            setModel(firstModel.name);
+          const firstModel = modelList.find((item) => item.provider === nextProvider.name && item.name);
+
+          if (firstModel) {
+            setModel?.(firstModel.name);
           }
         }}
-        className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
+        className="min-w-0 flex-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background p-2 text-bolt-elements-textPrimary transition-all focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
       >
-        {enabledProviders.map((provider: ProviderInfo) => (
-          <option key={provider.name} value={provider.name}>
-            {provider.name}
+        {enabledProviders.map((item) => (
+          <option key={item.name} value={item.name}>
+            {item.name}
           </option>
         ))}
       </select>
       <select
+        aria-label="AI model"
         key={provider?.name}
-        value={model}
-        onChange={(e) => setModel?.(e.target.value)}
-        className="flex-1 p-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all lg:max-w-[70%]"
+        value={providerModels.some((item) => item.name === model) ? model : providerModels[0]?.name ?? ''}
+        onChange={(event) => setModel?.(event.target.value)}
+        disabled={providerModels.length === 0}
+        className="min-w-0 flex-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background p-2 text-bolt-elements-textPrimary transition-all focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus lg:max-w-[70%]"
       >
-        {[...modelList]
-          .filter((e) => e.provider == provider?.name && e.name)
-          .map((modelOption, index) => (
-            <option key={index} value={modelOption.name}>
-              {modelOption.label}
-            </option>
-          ))}
+        {providerModels.map((modelOption) => (
+          <option key={modelOption.name} value={modelOption.name}>
+            {modelOption.label}
+          </option>
+        ))}
       </select>
     </div>
   );
