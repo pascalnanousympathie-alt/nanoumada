@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { IconButton } from '~/components/ui/IconButton';
 import type { ProviderInfo } from '~/types/model';
 
@@ -15,6 +15,13 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
   const [isEditing, setIsEditing] = useState(false);
   const [tempKey, setTempKey] = useState(apiKey);
 
+  // Reset the editor when the selected provider or its saved key changes.
+  // Otherwise the same mounted component can retain another provider's key.
+  useEffect(() => {
+    setTempKey(apiKey);
+    setIsEditing(false);
+  }, [provider.name, apiKey]);
+
   const handleSave = () => {
     setApiKey(tempKey);
     setIsEditing(false);
@@ -29,7 +36,7 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
             <span className="flex-1 text-xs text-bolt-elements-textPrimary mr-2">
               {apiKey ? '••••••••' : 'Not set (will still work if set in .env file)'}
             </span>
-            <IconButton onClick={() => setIsEditing(true)} title="Edit API Key">
+            <IconButton onClick={() => { setTempKey(apiKey); setIsEditing(true); }} title="Edit API Key">
               <div className="i-ph:pencil-simple" />
             </IconButton>
           </div>
