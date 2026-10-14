@@ -28,6 +28,65 @@ const toastAnimation = cssTransition({
 
 const logger = createScopedLogger('Chat');
 
+const PROVIDERS_WITHOUT_REQUIRED_KEYS = new Set(['Ollama', 'LMStudio', 'OpenAILike']);
+
+function readSavedApiKeys(): Record<string, string> {
+  try {
+    const saved = Cookies.get('apiKeys');
+
+    if (!saved) {
+      return {};
+    }
+
+    const parsed = JSON.parse(saved);
+
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function getInitialProvider(): ProviderInfo {
+  const savedProviderName = Cookies.get('selectedProvider');
+  const savedProvider = PROVIDER_LIST.find((p) => p.name === savedProviderName);
+  const savedKeys = readSavedApiKeys();
+
+  // Keep a user's saved provider only if it can actually authenticate.
+  if (
+    savedProvider &&
+    (PROVIDERS_WITHOUT_REQUIRED_KEYS.has(savedProvider.name) || Boolean(savedKeys[savedProvider.name]))
+  ) {
+    return savedProvider;
+  }
+
+  // Nanoumada's configured free-first default is Google Gemini. Prefer it when
+  // the user already saved a Google key instead of silently attempting Claude.
+  const googleProvider = PROVIDER_LIST.find((p) => p.name === 'Google');
+
+  if (googleProvider && savedKeys.Google) {
+    return googleProvider;
+  }
+
+  return DEFAULT_PROVIDER;
+}
+
+function getInitialModel(provider: ProviderInfo): string {
+  const savedProviderName = Cookies.get('selectedProvider');
+  const savedModel = Cookies.get('selectedModel');
+  const providerInfo = PROVIDER_LIST.find((p) => p.name === provider.name);
+  const staticModels = providerInfo?.staticModels || [];
+
+  if (savedProviderName === provider.name && savedModel) {
+    if (staticModels.length === 0 || staticModels.some((m) => m.name === savedModel)) {
+      return savedModel;
+    }
+  }
+
+  const defaultForProvider = staticModels.find((m) => m.name === DEFAULT_MODEL);
+
+  return defaultForProvider?.name || staticModels[0]?.name || DEFAULT_MODEL;
+}
+
 export function Chat() {
   renderLogger.trace('Chat');
 
@@ -94,20 +153,14 @@ export const ChatImpl = memo(
     const [imageDataList, setImageDataList] = useState<string[]>([]); // Move here
     const { activeProviders } = useSettings();
 
-    const [model, setModel] = useState(() => {
-      const savedModel = Cookies.get('selectedModel');
-      return savedModel || DEFAULT_MODEL;
-    });
-    const [provider, setProvider] = useState(() => {
-      const savedProvider = Cookies.get('selectedProvider');
-      return PROVIDER_LIST.find((p) => p.name === savedProvider) || DEFAULT_PROVIDER;
-    });
+    const [provider, setProvider] = useState<ProviderInfo>(() => getInitialProvider());
+    const [model, setModel] = useState(() => getInitialModel(provider));
 
     const { showChat } = useStore(chatStore);
 
     const [animationScope, animate] = useAnimate();
 
-    const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+    const [apiKeys, setApiKeys] = useState<Record<string, string>>(() => readSavedApiKeys());
 
     const { messages, isLoading, input, handleInputChange, setInput, stop, append } = useChat({
       api: '/api/chat',
