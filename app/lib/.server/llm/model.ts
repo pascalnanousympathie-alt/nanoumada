@@ -12,6 +12,7 @@ import { createMistral } from '@ai-sdk/mistral';
 import { createCohere } from '@ai-sdk/cohere';
 import type { LanguageModelV1 } from 'ai';
 import type { IProviderSetting } from '~/types/model';
+import { ReadableStream as NodeReadableStream } from 'node:stream/web';
 
 export const DEFAULT_NUM_CTX = process.env.DEFAULT_NUM_CTX ? parseInt(process.env.DEFAULT_NUM_CTX, 10) : 32768;
 
@@ -57,9 +58,59 @@ export function getMistralModel(apiKey: OptionalApiKey, model: string) {
   return mistral(model);
 }
 
+/**
+ * The Remix runtime can expose a ponyfill-backed Fetch Response while Node's
+ * TextDecoderStream/TransformStream are native. The AI SDK's SSE parser then
+ * mixes incompatible Web Stream implementations and fails before yielding any
+ * Gemini text. Bridge successful response bytes into Node's native stream.
+ */
+const googleCompatibleFetch: typeof fetch = async (input, init) => {
+  const response = await globalThis.fetch(input, init);
+
+  // Leave error responses untouched so provider error handlers can read them.
+  if (!response.ok || !response.body) {
+    return response;
+  }
+
+  const reader = response.body.getReader();
+  const nativeBody = new NodeReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+    cancel(reason) {
+      return reader.cancel(reason);
+    },
+  });
+
+  // Preserve normal Response metadata and methods, but expose the native
+  // stream to @ai-sdk/provider-utils so pipeThrough receives matching streams.
+  return new Proxy(response, {
+    get(target, property) {
+      if (property === 'body') {
+        return nativeBody;
+      }
+
+      const value = Reflect.get(target, property, target);
+
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  }) as Response;
+};
+
 export function getGoogleModel(apiKey: OptionalApiKey, model: string) {
   const google = createGoogleGenerativeAI({
     apiKey,
+    fetch: googleCompatibleFetch,
   });
 
   return google(model);
