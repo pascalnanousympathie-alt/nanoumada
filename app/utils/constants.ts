@@ -193,8 +193,8 @@ const PROVIDER_LIST: ProviderInfo[] = [
     getDynamicModels: getCerebrasModels,
     getApiKeyLink: 'https://cloud.cerebras.ai/',
     freeTierNote:
-      'Not a guaranteed no-card free tier: current official pricing says its one-time $5 promotional credit requires a valid payment method and expires after 30 days.',
-    freeTierUrl: 'https://www.cerebras.ai/pricing',
+      'Free API tier at $0 with lower rate limits; key access and model availability are account-dependent. Check current official limits before use.',
+    freeTierUrl: 'https://inference-docs.cerebras.ai/support/pricing',
   },
   {
     name: 'HuggingFace',
