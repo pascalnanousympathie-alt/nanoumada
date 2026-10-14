@@ -17,7 +17,7 @@ export default async function handleRequest(
   await initializeModelList();
 
   const readable = await renderToReadableStream(<RemixServer context={remixContext} url={request.url} />, {
-    signal: request.signal,
+    signal: typeof process !== 'undefined' && process.env?.VERCEL === '1' ? undefined : request.signal,
     onError(error: unknown) {
       console.error(error);
       responseStatusCode = 500;

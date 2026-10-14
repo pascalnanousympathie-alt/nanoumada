@@ -1,5 +1,6 @@
 import { convertToCoreMessages, streamText as _streamText } from 'ai';
 import { getModel } from '~/lib/.server/llm/model';
+import { getAPIKey } from '~/lib/.server/llm/api-key';
 import { MAX_TOKENS } from './constants';
 import { getSystemPrompt } from './prompts';
 import { trimMessagesForSmallModel } from './context-trimmer';
@@ -70,6 +71,19 @@ export async function streamText(props: {
   const { messages, env, options, apiKeys, providerSettings } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
+
+  const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
+  const requestedProvider = lastUserMessage
+    ? extractPropertiesFromMessage(lastUserMessage).provider
+    : DEFAULT_PROVIDER.name;
+  const providersWithoutMandatoryApiKeys = ['Ollama', 'LMStudio', 'OpenAILike'];
+
+  if (!providersWithoutMandatoryApiKeys.includes(requestedProvider) && !getAPIKey(env, requestedProvider, apiKeys)) {
+    throw new Error(
+      `API key is missing for ${requestedProvider}. Add the key in the chat API Key field or select a different provider.`,
+    );
+  }
+
   const MODEL_LIST = await getModelList(apiKeys || {}, providerSettings);
   const processedMessages = messages.map((message) => {
     if (message.role === 'user') {
