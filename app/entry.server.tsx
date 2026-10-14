@@ -16,8 +16,6 @@ export default async function handleRequest(
   remixContext: EntryContext,
   _loadContext: AppLoadContext,
 ) {
-  await initializeModelList();
-
   // Vercel's Node runtime has repeatedly aborted React 18's browser Web Stream
   // renderer during response cancellation (ERR_INVALID_STATE: Controller is already
   // closed). Produce a complete document on Vercel to avoid that close race.
@@ -25,6 +23,12 @@ export default async function handleRequest(
   const requestHost = (request.headers.get('host') || '').split(':')[0].toLowerCase();
   const isVercelRequest =
     isVercelRuntime || request.headers.has('x-vercel-id') || requestHost.endsWith('.vercel.app');
+
+  // Dynamic provider catalogs are for the browser's model selector, not SSR.
+  // Avoid delaying each Vercel page response on unrelated external catalog fetches.
+  if (!isVercelRequest) {
+    await initializeModelList();
+  }
 
   if (isVercelRequest) {
     const head = renderHeadToString({ request, remixContext, Head });
