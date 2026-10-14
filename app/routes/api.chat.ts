@@ -9,6 +9,27 @@ export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
 }
 
+function sanitizeProviderError(error: unknown, secrets: string[] = []) {
+  let message = error instanceof Error ? error.message : String(error ?? 'Unknown provider error');
+
+  for (const secret of secrets) {
+    if (typeof secret === 'string' && secret.length >= 8) {
+      message = message.split(secret).join('[REDACTED_API_KEY]');
+    }
+  }
+
+  return message
+    .replace(/([?&](?:key|api[_-]?key|access_token|token)=)[^&\\s]+/gi, '$1[REDACTED]')
+    .replace(/\\bAIza[0-9A-Za-z_-]{20,}\\b/g, '[REDACTED_API_KEY]')
+    .replace(/\\bAQ\\.[0-9A-Za-z_-]{20,}\\b/g, '[REDACTED_API_KEY]')
+    .replace(
+      /\\b(?:sk-[A-Za-z0-9_-]{16,}|sk_[A-Za-z0-9_-]{16,}|gsk_[A-Za-z0-9_-]{16,}|hf_[A-Za-z0-9_-]{16,}|xai-[A-Za-z0-9_-]{16,}|or-v1-[A-Za-z0-9_-]{16,})\\b/g,
+      '[REDACTED_API_KEY]',
+    )
+    .replace(/\\bBearer\\s+\\S+/gi, 'Bearer [REDACTED]')
+    .slice(0, 800);
+}
+
 function parseCookies(cookieHeader: string) {
   const cookies: any = {};
 
@@ -84,6 +105,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   try {
     const options: StreamingOptions = {
       toolChoice: 'none',
+      // Generation errors often arrive after HTTP 200 when the model stream starts.
+      // Log them here as well as in the setup catch so production has the real cause.
+      onError: ({ error }: { error: unknown }) => {
+        console.error('Chat provider stream failed:', sanitizeProviderError(error, Object.values(apiKeys)));
+      },
       onFinish: async ({ text: content, finishReason }) => {
         if (finishReason !== 'length') {
           return stream.close();
@@ -117,16 +143,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       },
     });
   } catch (error: any) {
-    const providerError = String(error?.message ?? error ?? '');
-    const safeProviderError = providerError
-      .replace(/([?&](?:key|api[_-]?key|access_token|token)=)[^&\s]+/gi, '$1[REDACTED]')
-      .replace(/\bAIza[0-9A-Za-z_-]{20,}\b/g, '[REDACTED_API_KEY]')
-      .replace(
-        /\b(?:sk-[A-Za-z0-9_-]{16,}|sk_[A-Za-z0-9_-]{16,}|gsk_[A-Za-z0-9_-]{16,}|hf_[A-Za-z0-9_-]{16,}|xai-[A-Za-z0-9_-]{16,}|or-v1-[A-Za-z0-9_-]{16,})\b/g,
-        '[REDACTED_API_KEY]',
-      )
-      .replace(/\bBearer\s+\S+/gi, 'Bearer [REDACTED]');
-    console.error('Chat provider request failed:', safeProviderError.slice(0, 800));
+    const providerError = error instanceof Error ? error.message : String(error ?? '');
+    const safeProviderError = sanitizeProviderError(error, Object.values(apiKeys));
+    console.error('Chat provider request failed:', safeProviderError);
 
     if (/\b429\b|rate.?limit|quota|resource_exhausted|too many requests/i.test(providerError)) {
       throw new Response(
