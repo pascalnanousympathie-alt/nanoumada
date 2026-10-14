@@ -283,14 +283,48 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         <div ref={scrollRef} className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
-              <div id="intro" className="mt-[26vh] max-w-chat mx-auto text-center px-4 lg:px-0">
-                <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
-                  Where ideas begin
+              <section id="intro" className="mt-[10vh] sm:mt-[12vh] max-w-chat mx-auto text-center px-4 lg:px-6">
+                <div className="inline-flex items-center gap-2 rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2/80 px-3 py-1.5 mb-5 shadow-sm animate-fade-in">
+                  <img src="/nanoumada-mark.svg" alt="" aria-hidden="true" className="w-5 h-5" />
+                  <span className="text-xs font-semibold tracking-wide text-bolt-elements-textSecondary">
+                    NANOUMADA · AI CODING WORKSPACE
+                  </span>
+                </div>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-bolt-elements-textPrimary mb-4 animate-fade-in">
+                  Turn your ideas into <span className="text-accent">working software.</span>
                 </h1>
-                <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
-                  Bring ideas to life in seconds or get help on existing projects.
+                <p className="text-sm sm:text-base lg:text-lg max-w-2xl mx-auto mb-6 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
+                  Describe what you want to build. Nanoumada helps you create files, refine code, troubleshoot issues
+                  and preview your app in one workspace.
                 </p>
-              </div>
+                <div className="flex flex-wrap justify-center gap-2 mb-5 text-xs text-bolt-elements-textSecondary">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-bolt-elements-background-depth-2 px-3 py-1.5">
+                    <span className="i-ph:code-bold text-base text-accent" /> Code & edit
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-bolt-elements-background-depth-2 px-3 py-1.5">
+                    <span className="i-ph:terminal-window text-base text-accent" /> Run commands
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-bolt-elements-background-depth-2 px-3 py-1.5">
+                    <span className="i-ph:eye text-base text-accent" /> Preview changes
+                  </span>
+                </div>
+                {(!providerList || providerList.length === 0) && (
+                  <div className="max-w-xl mx-auto mb-5 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 text-left">
+                    <div className="flex items-start gap-3">
+                      <span className="i-ph:plug-charging text-xl text-accent mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-bolt-elements-textPrimary">
+                          Connect an AI provider to get started
+                        </p>
+                        <p className="text-xs sm:text-sm text-bolt-elements-textSecondary mt-1">
+                          Open Settings → Providers, enable Google, OpenRouter Free, Groq or Cerebras, then choose the
+                          provider in the chat and save your API key. A free tier still has account and model limits.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
             )}
             <div
               className={classNames('pt-6 px-2 sm:px-6', {
