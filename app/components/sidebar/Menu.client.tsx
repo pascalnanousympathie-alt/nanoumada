@@ -42,6 +42,7 @@ export const Menu = () => {
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'chat-history' | 'providers'>('chat-history');
 
   const { filteredItems: filteredList, handleSearchChange } = useSearchFilter({
     items: list,
@@ -95,6 +96,19 @@ export const Menu = () => {
 
     return () => {
       window.removeEventListener('nanoumada:open-menu', openMenu);
+    };
+  }, []);
+
+  useEffect(() => {
+    const openProviderSettings = () => {
+      setSettingsInitialTab('providers');
+      setIsSettingsOpen(true);
+    };
+
+    window.addEventListener('nanoumada:open-provider-settings', openProviderSettings);
+
+    return () => {
+      window.removeEventListener('nanoumada:open-provider-settings', openProviderSettings);
     };
   }, []);
 
@@ -226,11 +240,20 @@ export const Menu = () => {
           </DialogRoot>
         </div>
         <div className="flex items-center justify-between border-t border-bolt-elements-borderColor p-4">
-          <SettingsButton onClick={() => setIsSettingsOpen(true)} />
+          <SettingsButton
+            onClick={() => {
+              setSettingsInitialTab('chat-history');
+              setIsSettingsOpen(true);
+            }}
+          />
           <ThemeSwitch />
         </div>
       </div>
-      <SettingsWindow open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+      <SettingsWindow
+        open={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        initialTab={settingsInitialTab}
+      />
     </motion.div>
   );
 };
