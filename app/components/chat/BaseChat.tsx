@@ -323,9 +323,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           Connect an AI provider to get started
                         </p>
                         <p className="text-xs sm:text-sm text-bolt-elements-textSecondary mt-1">
-                          Open Settings → Providers, enable Google, OpenRouter Free, Groq or Cerebras, then choose the
-                          provider in the chat and save your API key. A free tier still has account and model limits.
+                          Enable Google, OpenRouter Free, Groq or Cerebras, then choose the provider in the chat and
+                          save your API key. Free tiers still have account and model limits.
                         </p>
+                        <button
+                          type="button"
+                          onClick={() => window.dispatchEvent(new CustomEvent('nanoumada:open-provider-settings'))}
+                          aria-label="Open AI provider settings"
+                          className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-bolt-elements-item-backgroundAccent px-3 py-2 text-sm font-semibold text-bolt-elements-item-contentAccent hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
+                        >
+                          <span className="i-ph:gear text-base" aria-hidden="true" />
+                          Configure AI provider
+                        </button>
                       </div>
                     </div>
                   </div>
