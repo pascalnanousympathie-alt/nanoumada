@@ -1,6 +1,6 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { motion } from 'framer-motion';
-import { useState, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 import { classNames } from '~/utils/classNames';
 import { DialogTitle, dialogVariants, dialogBackdropVariants } from '~/components/ui/Dialog';
 import styles from './Settings.module.scss';
@@ -11,16 +11,23 @@ import FeaturesTab from './features/FeaturesTab';
 import DebugTab from './debug/DebugTab';
 import ConnectionsTab from './connections/ConnectionsTab';
 
+type TabType = 'chat-history' | 'providers' | 'features' | 'debug' | 'connection';
+
 interface SettingsProps {
   open: boolean;
   onClose: () => void;
+  initialTab?: TabType;
 }
 
-type TabType = 'chat-history' | 'providers' | 'features' | 'debug' | 'connection';
-
-export const SettingsWindow = ({ open, onClose }: SettingsProps) => {
+export const SettingsWindow = ({ open, onClose, initialTab }: SettingsProps) => {
   const { debug } = useSettings();
-  const [activeTab, setActiveTab] = useState<TabType>('chat-history');
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab ?? 'chat-history');
+
+  useEffect(() => {
+    if (open && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [open, initialTab]);
 
   const tabs: { id: TabType; label: string; icon: string; component?: ReactElement }[] = [
     { id: 'chat-history', label: 'Chat History', icon: 'i-ph:book', component: <ChatHistoryTab /> },
