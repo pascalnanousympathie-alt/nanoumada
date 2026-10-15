@@ -6,7 +6,6 @@ import type { Message } from 'ai';
 import React, { type RefCallback, useEffect, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
-import { SettingsWindow } from '~/components/settings/SettingsWindow';
 import { IconButton } from '~/components/ui/IconButton';
 
 import { classNames } from '~/utils/classNames';
@@ -113,7 +112,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     });
     const [modelList, setModelList] = useState(MODEL_LIST);
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(false);
-    const [isProviderSettingsOpen, setIsProviderSettingsOpen] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
     const [transcript, setTranscript] = useState('');
@@ -288,15 +286,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         data-chat-visible={showChat}
       >
         <ClientOnly>{() => <Menu />}</ClientOnly>
-        <ClientOnly>
-          {() => (
-            <SettingsWindow
-              open={isProviderSettingsOpen}
-              onClose={() => setIsProviderSettingsOpen(false)}
-              initialTab="providers"
-            />
-          )}
-        </ClientOnly>
         <div ref={scrollRef} className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
@@ -339,7 +328,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         </p>
                         <button
                           type="button"
-                          onClick={() => setIsProviderSettingsOpen(true)}
+                          onClick={() => window.dispatchEvent(new CustomEvent('nanoumada:open-provider-settings'))}
                           aria-label="Open AI provider settings"
                           className="mt-3 inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-bolt-elements-item-backgroundAccent px-3 py-2 text-sm font-semibold text-bolt-elements-item-contentAccent hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
                         >
