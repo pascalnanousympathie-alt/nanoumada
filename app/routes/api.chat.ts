@@ -1,9 +1,28 @@
-import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+import { type ActionFunctionArgs, type LoaderFunctionArgs } from '@remix-run/cloudflare';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '~/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import type { IProviderSetting } from '~/types/model';
+
+export function loader({ request }: LoaderFunctionArgs) {
+  const allow = 'POST, OPTIONS';
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: { Allow: allow },
+    });
+  }
+
+  return new Response('Method Not Allowed', {
+    status: 405,
+    headers: {
+      Allow: allow,
+      'Content-Type': 'text/plain; charset=utf-8',
+    },
+  });
+}
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
