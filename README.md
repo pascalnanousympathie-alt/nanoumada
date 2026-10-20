@@ -1,6 +1,8 @@
-# Nanoumada
+# Nanoumada — Browser-based AI Coding Workspace
 
-Nanoumada is a self-hostable AI coding workspace based on the open-source [Bolt.diy](https://github.com/stackblitz-labs/bolt.diy) project. It is designed to let you choose among supported AI providers and use them to create, inspect, and improve applications from a browser-based workspace.
+**Nanoumada is a web app**, based on the open-source [Bolt.diy](https://github.com/stackblitz-labs/bolt.diy) project. It is designed to let you choose among supported AI providers and use them to create, inspect, and improve applications from a browser-based workspace. The main delivery is the web UI/server and browser preview, not an Android APK.
+
+The Android/Termux instructions below only start the web server locally on the phone and open it in the phone's browser. They do not describe or require a native Android package.
 
 ## Upstream and license
 
